@@ -1,21 +1,22 @@
-# Django Assessment — Senior SWE Technical Test
+# Incubyte Salary Management
 
-A TDD-first Django REST Framework scaffold using **Poetry**, **pytest**, **pytest-factoryboy**, and **flake8**.
+A production-ready Django REST Framework API for managing employees and computing salary deductions and metrics.
 
 ---
 
 ## Tech Stack
 
-| Tool | Purpose |
-|---|---|
-| Django 5 + DRF | Web framework & REST API |
-| SQLite | Database (zero-config for local dev) |
-| Poetry | Dependency & virtual-env management |
-| pytest + pytest-django | Test runner |
-| pytest-factoryboy | Factory-based fixtures from factory_boy |
-| factory_boy + Faker | Realistic test data generation |
-| flake8 | Linting & style enforcement |
-| coverage / pytest-cov | Code coverage reporting |
+| Tool                     | Purpose                               |
+| ------------------------ | ------------------------------------- |
+| Django 5 + DRF           | Web framework & REST API              |
+| SQLite                   | Zero-config local database            |
+| Poetry                   | Dependency & virtual-env management   |
+| pytest + pytest-django   | Test runner & Django integration      |
+| factory_boy + Faker      | Realistic test data generation        |
+| DRF Token Authentication | Built-in API auth, no extra libraries |
+| flake8                   | Linting & style enforcement           |
+| pytest-cov               | Code coverage reporting               |
+| drf-spectacular          | Auto-generated OpenAPI/Swagger docs   |
 
 ---
 
@@ -25,189 +26,224 @@ A TDD-first Django REST Framework scaffold using **Poetry**, **pytest**, **pytes
 .
 ├── config/
 │   ├── __init__.py
-│   ├── settings.py        # Django settings
-│   ├── urls.py            # Root URL config
+│   ├── settings.py          # Single settings file
+│   ├── urls.py              # Root URL config
 │   └── wsgi.py
 ├── apps/
-│   └── api/
+│   └── employees/
 │       ├── migrations/
 │       ├── tests/
-│       │   ├── factories.py       # factory_boy factories
-│       │   ├── test_models.py     # Model unit tests
-│       │   ├── test_serializers.py
-│       │   └── test_views.py      # API integration tests
-│       ├── apps.py
+│       │   ├── test_models.py
+│       │   ├── test_employee_crud.py
+│       │   ├── test_salary_calculation.py
+│       │   └── test_salary_metrics.py
+│       ├── services/
+│       │   ├── salary_calculator.py   # Pure function, no Django deps
+│       │   └── salary_metrics.py      # ORM aggregations
 │       ├── models.py
 │       ├── serializers.py
-│       ├── urls.py
-│       └── views.py
-├── conftest.py            # Shared pytest fixtures + factory registration
+│       ├── views.py
+│       └── urls.py
+├── conftest.py              # Shared pytest fixtures (api_client, auth_client, create_employee)
 ├── manage.py
-├── pyproject.toml         # Poetry config + pytest/coverage config
-├── .flake8                # Linting rules
+├── pyproject.toml           # Poetry config + pytest/coverage settings
+├── .flake8
 ├── .env.example
 └── .gitignore
 ```
 
 ---
 
-## Step-by-Step Setup
+## Setup & Installation
 
-### 1. Install Poetry (if not already installed)
+### Prerequisites
+
+- Python 3.11+
+- Poetry — install if not already present:
 
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-Verify:
-```bash
-poetry --version
-```
-
-### 2. Install dependencies
+### Steps
 
 ```bash
+
+# 1. Install dependencies (creates .venv automatically)
 poetry install
-```
 
-This creates a `.venv` virtual environment and installs all dependencies.
-
-### 3. Set up environment variables
-
-```bash
+# 2. Copy environment variables
 cp .env.example .env
-```
 
-Edit `.env` if needed (defaults work fine for local dev).
-
-### 4. Run database migrations
-
-```bash
+# 3. Apply migrations
 poetry run python manage.py migrate
-```
 
-### 5. (Optional) Create a superuser
-
-```bash
+# 4. Create a superuser (needed to obtain an auth token)
 poetry run python manage.py createsuperuser
-```
 
-### 6. Start the dev server
-
-```bash
+# 5. Start the dev server
 poetry run python manage.py runserver
 ```
 
-API is available at: `http://127.0.0.1:8000/api/items/`
+API is available at `http://127.0.0.1:8000/api/`
+
+---
+
+## Authentication
+
+All endpoints require a token. First obtain one:
+
+```bash
+POST http://localhost:8000/api/auth/login/
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin"
+}
+```
+
+Response:
+
+```json
+{ "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" }
+```
+
+Then pass it in every request header:
+
+```
+Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+```
 
 ---
 
 ## Running Tests
 
-### Run all tests with coverage
-
 ```bash
 poetry run pytest
-```
-
-### Run a specific test file
-
-```bash
-poetry run pytest apps/api/tests/test_views.py
-```
-
-### Run a specific test class or method
-
-```bash
-poetry run pytest apps/api/tests/test_views.py::TestItemCreateAPI
-poetry run pytest apps/api/tests/test_views.py::TestItemCreateAPI::test_create_returns_201
-```
-
-### Run without coverage (faster)
-
-```bash
-poetry run pytest --no-cov
-```
-
-### View HTML coverage report
-
-```bash
-open htmlcov/index.html   # macOS
-xdg-open htmlcov/index.html  # Linux
 ```
 
 ---
 
 ## Linting
 
-```bash
-# Check for lint errors
+````bash
+# Check all files
 poetry run flake8 .
 
-# Check a specific file
-poetry run flake8 apps/api/views.py
-```
-
 ---
 
-## API Endpoints
+### Endpoints Summary
 
-Base URL: `/api/`
+| Method | URL                                            | Description                       |
+| ------ | ---------------------------------------------- | --------------------------------- |
+| POST   | `/api/auth/login/`                             | Obtain auth token                 |
+| GET    | `/api/employees/`                              | List all employees                |
+| POST   | `/api/employees/`                              | Create a new employee             |
+| GET    | `/api/employees/{id}/`                         | Retrieve an employee              |
+| PUT    | `/api/employees/{id}/`                         | Full update                       |
+| PATCH  | `/api/employees/{id}/`                         | Partial update                    |
+| DELETE | `/api/employees/{id}/`                         | Delete                            |
+| GET    | `/api/employees/{id}/salary/`                  | Calculate net salary + deductions |
+| GET    | `/api/salary-metrics/by-country/?country=`     | Min / max / avg salary by country |
+| GET    | `/api/salary-metrics/by-job-title/?job_title=` | Average salary by job title       |
 
-| Method | URL | Description |
-|--------|-----|-------------|
-| GET | `/api/items/` | List all items (paginated) |
-| POST | `/api/items/` | Create a new item |
-| GET | `/api/items/{id}/` | Retrieve a single item |
-| PUT | `/api/items/{id}/` | Full update |
-| PATCH | `/api/items/{id}/` | Partial update |
-| DELETE | `/api/items/{id}/` | Delete |
+### Example Requests
 
-### Query Params
-
-| Param | Values | Description |
-|---|---|---|
-| `is_active` | `true` / `false` | Filter by active status |
-
-### Example Request/Response
-
-**POST /api/items/**
-```json
-// Request
-{ "name": "Widget Pro", "description": "A great widget", "is_active": true }
-
-// Response 201
-{ "id": 1, "name": "Widget Pro", "description": "A great widget", "is_active": true, "created_at": "...", "updated_at": "..." }
-```
-
----
-
-## TDD Workflow
-
-This scaffold is built for a **Red → Green → Refactor** cycle:
-
-```
-1. Write a failing test first (Red)
-2. Write the minimum code to make it pass (Green)
-3. Refactor without breaking tests (Refactor)
-```
-
-### Adding a new feature
-
-1. Create / update the factory in `apps/api/tests/factories.py`
-2. Write model tests in `test_models.py`
-3. Write serializer tests in `test_serializers.py`
-4. Write API/view tests in `test_views.py`
-5. Implement model → serializer → view → urls
-6. Run `poetry run pytest` — all tests should be green
-7. Run `poetry run flake8 .` — no lint errors
-
----
-
-## Adding a New App
+**Create Employee**
 
 ```bash
-poetry run python manage.py startapp <appname> apps/<appname>
+curl -X POST http://localhost:8000/api/employees/ \
+  -H "Authorization: Token <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"full_name": "Jane Doe", "job_title": "Software Engineer", "country": "India", "salary": "100000.00"}'
+````
+
+**Get Salary Calculation**
+
+```bash
+curl http://localhost:8000/api/employees/1/salary/ \
+  -H "Authorization: Token <your_token>"
 ```
 
-Then in `config/settings.py`, add `"apps.<appname>"` to `LOCAL_APPS`.
+Response:
+
+```json
+{
+  "employee_id": 1,
+  "full_name": "Jane Doe",
+  "country": "India",
+  "gross_salary": "100000.00",
+  "deductions": { "tds": "10000.00" },
+  "net_salary": "90000.00"
+}
+```
+
+**Salary Metrics by Country**
+
+```bash
+curl "http://localhost:8000/api/salary-metrics/by-country/?country=India" \
+  -H "Authorization: Token <your_token>"
+```
+
+Response:
+
+```json
+{
+  "country": "India",
+  "min_salary": "50000.00",
+  "max_salary": "200000.00",
+  "average_salary": "125000.00"
+}
+```
+
+**Salary Metrics by Job Title**
+
+```bash
+curl "http://localhost:8000/api/salary-metrics/by-job-title/?job_title=Software Engineer" \
+  -H "Authorization: Token <your_token>"
+```
+
+Response:
+
+```json
+{
+  "job_title": "Software Engineer",
+  "average_salary": "120000.00"
+}
+```
+
+---
+
+## Deduction Rules
+
+| Country       | Rule                        |
+| ------------- | --------------------------- |
+| India         | TDS = 10% of gross salary   |
+| United States | TDS = 12% of gross salary   |
+| All others    | No deductions — net = gross |
+
+Country matching is case-insensitive.
+
+---
+
+## Design Decisions
+
+**Service layer** — business logic lives in `apps/employees/services/`, fully decoupled from views. `salary_calculator.py` is a pure function with zero Django imports, making it trivially unit-testable without any HTTP or ORM overhead. `salary_metrics.py` uses Django ORM aggregations (`Min`, `Max`, `Avg`).s
+
+**Built-in Token Auth** — uses DRF's `rest_framework.authtoken` rather than a third-party JWT library, keeping dependencies minimal for an API of this scope.
+
+---
+
+## Implementation Details — AI Usage
+
+| Step                 | Tool               | How It Was Used                                                                                                                                          |
+| -------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project scaffolding  | Claude (claude.ai) | Generated directory structure, boilerplate settings, urls, wsgi                                                                                          |
+| Test case generation | Claude (claude.ai) | Enumerated edge cases per endpoint — missing fields, 404s, case sensitivity, boundary values, DB persistence checks — then reviewed and refined manually |
+| Service logic        | Claude (claude.ai) | Drafted `calculate_salary` pure function; reviewed deduction rule mapping and decimal precision                                                          |
+| Auth setup           | Claude (claude.ai) | Advised on DRF built-in token auth over JWT for minimal dependencies                                                                                     |
+| Debugging            | Claude (claude.ai) | Diagnosed test isolation issue — missing `TEST: {NAME: ":memory:"}` in DATABASES causing rows to persist across tests                                    |
+| README               | Claude (claude.ai) | Drafted structure and examples; reviewed and updated to match actual project setup                                                                       |
+
+All AI-generated output was reviewed, adjusted for correctness, and integrated deliberately — not copy-pasted blindly.
