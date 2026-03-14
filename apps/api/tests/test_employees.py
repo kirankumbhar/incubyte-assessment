@@ -1,34 +1,8 @@
 import pytest
-from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from apps.api.models import Employee
-
-
-
-@pytest.fixture
-def employee_payload():
-    return {
-        "full_name": "Jane Doe",
-        "job_title": "Software Engineer",
-        "country": "India",
-        "salary": "100000.00",
-    }
-
-
-@pytest.fixture
-def create_employee(db):
-    def _create(**kwargs):
-        defaults = {
-            "full_name": "Test User",
-            "job_title": "Developer",
-            "country": "India",
-            "salary": Decimal("80000.00"),
-        }
-        defaults.update(kwargs)
-        return Employee.objects.create(**defaults)
-    return _create
 
 
 @pytest.mark.django_db
@@ -106,12 +80,16 @@ class TestEmployeeList:
         create_employee(full_name="Bob")
         url = reverse("employee-list")
         response = auth_client.get(url)
-        assert len(response.json()) == 2
+        data = response.json()
+        assert data["count"] == 2
+        assert len(data["results"]) == 2
 
     def test_list_returns_empty_list_when_no_employees(self, auth_client):
         url = reverse("employee-list")
         response = auth_client.get(url)
-        assert response.json() == []
+        data = response.json()
+        assert data["count"] == 0
+        assert data["results"] == []
 
 
 @pytest.mark.django_db
