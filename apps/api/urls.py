@@ -1,9 +1,10 @@
-from django.urls import include, path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from .views import EmployeeViewSet
 
-from apps.api.views import ItemViewSet
 
 router = DefaultRouter()
+router.register(r"employees", EmployeeViewSet, basename="employee")
 
 urlpatterns = [
     path("", include(router.urls)),
