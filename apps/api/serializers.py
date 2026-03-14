@@ -16,3 +16,14 @@ class SalaryCalculationSerializer(serializers.Serializer):
     gross_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
     deductions = serializers.DictField(child=serializers.DecimalField(max_digits=12, decimal_places=2))
     net_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+class SalaryMetricsByCountrySerializer(serializers.Serializer):
+    country = serializers.CharField()
+    min_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+    max_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+    average_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
+ 
+ 
+class SalaryMetricsByJobTitleSerializer(serializers.Serializer):
+    job_title = serializers.CharField()
+    average_salary = serializers.DecimalField(max_digits=12, decimal_places=2)
